@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>AI Knowledge Assistant | Master Menu LLC</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-inner">
+        <div>
+          <div class="header-title-row">
+            <h1>AI Knowledge Assistant</h1>
+            <span class="header-brand">— Powered by Master Menu LLC</span>
+          </div>
+          <p class="header-tagline">Upload your documents and ask questions based on your files.</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel upload-panel">
+        <h2>Documents</h2>
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff" hidden>
+          <p class="upload-title">Drop files here or click to upload</p>
+          <p class="upload-hint">PDF, Word, text, and images supported</p>
+          <button type="button" class="btn secondary" id="browseBtn">Browse files</button>
+        </div>
+        <div id="uploadStatus" class="status-message" hidden></div>
+        <ul id="documentList" class="document-list"></ul>
+      </section>
+
+      <section class="panel chat-panel">
+        <h2>Ask a question</h2>
+        <div class="chat-window" id="chatWindow">
+         
+        </div>
+        <form id="chatForm" class="chat-form">
+          <textarea id="questionInput" rows="2" placeholder="Type your question here…" required autocomplete="off" enterkeyhint="send"></textarea>
+          <button type="submit" class="btn primary" id="sendBtn">Ask</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
