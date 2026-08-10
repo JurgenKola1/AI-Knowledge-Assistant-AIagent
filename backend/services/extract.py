@@ -12,7 +12,7 @@ from openai import OpenAI
 from PIL import Image
 
 from backend.config import CHUNK_OVERLAP, CHUNK_SIZE, OPENAI_API_KEY, VISION_MODEL
-from prompts.vision import VISION_PROMPT
+from backend.prompts.vision import VISION_PROMPT
 
 MIN_TEXT_CHARS = 50
 
@@ -145,7 +145,7 @@ def load_document(path: Path, source_name: str | None = None) -> tuple[list[Docu
 
     if suffix == "pdf":
         return _load_pdf(path, source)
-    if suffix in {"docx", "doc"}:
+    if suffix == "docx":
         return _load_docx(path, source)
     if suffix in {"txt", "md"}:
         return _load_text(path, source, suffix)

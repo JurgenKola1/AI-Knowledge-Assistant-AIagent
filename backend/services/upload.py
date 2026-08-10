@@ -7,8 +7,8 @@ from werkzeug.utils import secure_filename
 
 from backend.config import ALLOWED_EXTENSIONS, UPLOAD_DIR
 from backend.database import create_document, delete_document_record, update_document
-from backend.services.document_loader import chunk_documents, load_document
-from backend.services.vector_store import add_chunks, delete_document_vectors, ensure_index
+from backend.services.extract import chunk_documents, load_document
+from backend.services.search import add_chunks, delete_document_vectors, ensure_index
 
 
 def allowed_file(filename: str) -> bool:
@@ -35,12 +35,13 @@ def process_document(doc_id: int, stored_path: Path, source_name: str) -> None:
         ensure_index()
         pages, page_count = load_document(stored_path, source_name=source_name)
         if not pages:
+            error_message = "No readable text could be extracted from this file."
             update_document(
                 doc_id,
                 status="failed",
-                error_message="No readable text could be extracted from this file.",
+                error_message=error_message,
             )
-            return
+            raise ValueError(error_message)
 
         chunks = chunk_documents(pages, document_id=doc_id)
         add_chunks(chunks)
@@ -50,6 +51,8 @@ def process_document(doc_id: int, stored_path: Path, source_name: str) -> None:
             page_count=page_count,
             chunk_count=len(chunks),
         )
+    except ValueError:
+        raise
     except Exception as exc:
         update_document(
             doc_id,

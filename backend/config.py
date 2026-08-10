@@ -29,11 +29,11 @@ EMBEDDING_DIMENSION = 1536
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
 TOP_K = 5
+MAX_HISTORY_MESSAGES = 12
 
 ALLOWED_EXTENSIONS = {
     "pdf",
     "docx",
-    "doc",
     "txt",
     "md",
     "png",

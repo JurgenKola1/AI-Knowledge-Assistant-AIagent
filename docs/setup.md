@@ -1,20 +1,19 @@
-# Setup Guide
+# Setup
 
 ## Requirements
 
-- Python 3.10 or newer
+- Python 3.10+
 - OpenAI API key
-- Pinecone API key (free tier works for testing)
-- Internet connection (for OpenAI and Pinecone APIs)
+- Pinecone API key
 
-## Step 1: Install dependencies
+## Install
 
 ```bash
 cd "AI Knowledge Assistant Agent"
 python -m venv .venv
 ```
 
-Activate the virtual environment:
+Activate:
 
 ```bash
 # Windows
@@ -24,15 +23,11 @@ Activate the virtual environment:
 source .venv/bin/activate
 ```
 
-Install packages:
-
 ```bash
 pip install -r requirements.txt
 ```
 
-## Step 2: Configure environment variables
-
-Copy the example file:
+## Configure
 
 ```bash
 # Windows
@@ -42,47 +37,39 @@ copy .env.example .env
 cp .env.example .env
 ```
 
-Edit `.env` and set your values:
+Edit `.env`:
 
 | Variable | Required | Description |
 |---|---|---|
-| `OPENAI_API_KEY` | Yes | From [platform.openai.com](https://platform.openai.com) |
-| `PINECONE_API_KEY` | Yes | From [pinecone.io](https://www.pinecone.io) |
-| `PINECONE_INDEX_NAME` | No | Defaults to `knowledge-assistant-index` |
+| `OPENAI_API_KEY` | Yes | From platform.openai.com |
+| `PINECONE_API_KEY` | Yes | From pinecone.io |
+| `PINECONE_INDEX_NAME` | No | Default: `knowledge-assistant-index` |
 | `FLASK_SECRET_KEY` | No | Change in production |
 
-**Important:** Never commit `.env` to git. Remove or replace real keys before sharing the project publicly.
+Never commit `.env`.
 
-## Step 3: Run the application
+## Run
 
 ```bash
 python app.py
 ```
 
-Open [http://localhost:5000](http://localhost:5000) in your browser.
+Open http://localhost:5000
 
-## Step 4: First upload
+## First use
 
-1. Upload a test document (PDF or TXT works well)
+1. Upload a PDF or TXT manual
 2. Wait for status **Ready**
-3. Ask a question related to the document content
+3. Ask a question about that document
 
-On first upload, the app creates the Pinecone index automatically. This may take a few seconds.
+The Pinecone index is created automatically on first upload.
 
 ## Troubleshooting
 
-| Problem | Likely cause | Fix |
-|---|---|---|
-| `Upload failed` | Missing or invalid API keys | Check `.env` values |
-| Empty answers | No relevant chunks found | Upload more documents or rephrase question |
-| Pinecone error | Index not ready | Wait a few seconds and retry |
-| Port in use | Another app on port 5000 | Stop other process or change port in `app.py` |
+| Problem | Fix |
+|---|---|
+| Upload failed | Check API keys in `.env` |
+| Empty / not-found answers | Upload the right manual or rephrase |
+| Port in use | Stop the other process on port 5000 |
 
-## Folder creation
-
-These folders are created automatically when the app runs:
-
-- `data/` — SQLite database
-- `uploads/` — uploaded files
-
-Both are gitignored except for `.gitkeep` placeholder files.
+`data/` and `uploads/` are created automatically at runtime.

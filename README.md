@@ -1,132 +1,102 @@
-# AI Knowledge Assistant Agent
+# AI Knowledge Assistant
 
-A document-based Q&A agent for business teams. Upload PDFs, Word files, and images, then ask questions answered only from your uploaded content.
+Upload technical manuals and ask questions. Answers come from your documents, with source filename, page, and snippet.
 
-Built as a teaching project for the book **Building Business AI Agents: A Technical Guide to Designing, Deploying, and Selling AI Automation Systems**.
+## Features
 
-## What it does
-
-- Upload company documents through a simple web UI
-- Extract text from PDFs, Word files, plain text, and images
-- Store document chunks in a vector database for semantic search
-- Answer questions using retrieved context and OpenAI
-- Show source documents (filename and page) for each answer
-
-## Main features
-
-| Feature | Description |
-|---|---|
-| Document upload | Drag-and-drop or browse to upload files |
-| Multi-format support | PDF, DOCX, TXT, MD, and common image formats |
-| RAG chat | Answers grounded in uploaded documents only |
-| Source citations | Hidden behind a menu in each answer |
-| Document management | List and delete uploaded files |
-
-## How it works
-
-```
-User Question → Frontend → Backend → Knowledge Search → Prompt Logic → AI Model → Final Answer
-```
-
-1. User uploads a document → text is extracted and split into chunks
-2. Chunks are embedded and stored in Pinecone
-3. User asks a question → similar chunks are retrieved
-4. Retrieved text is added to a prompt → OpenAI generates the answer
-5. Answer and sources are sent back to the browser
-
-See [docs/how-it-works.md](docs/how-it-works.md) for a step-by-step walkthrough.
+- Upload PDF, DOCX, text, and images
+- Conversational chat with session memory (browser only)
+- Clarifies vague questions before searching manuals
+- Document filter + step-by-step answer option
+- Source citations with text snippets
 
 ## Project structure
 
 ```
 AI Knowledge Assistant Agent/
-├── app.py                 # Flask API and web routes
+├── app.py                 # Flask routes (upload, chat, UI)
+├── LumaMark_LX500_Test_Manual.pdf  # Sample test manual (fictional)
 ├── backend/
-│   ├── config.py          # Settings and environment variables
-│   ├── database.py        # SQLite document metadata
+│   ├── config.py          # Settings and API keys
+│   ├── database.py        # SQLite document list
+│   ├── prompts/
+│   │   ├── chat.py        # Orchestrator and answer prompts
+│   │   └── vision.py      # Image / scan text prompt
 │   └── services/
-│       ├── document_loader.py   # Text extraction and chunking
-│       ├── ingestion.py         # Upload pipeline
-│       ├── rag.py               # Question answering
-│       └── vector_store.py      # Pinecone search and storage
-├── prompts/
-│   ├── chat.py            # RAG system and user prompts
-│   └── vision.py          # Image/scanned PDF extraction prompt
-├── templates/             # HTML (frontend)
-├── static/                # CSS and JavaScript (frontend)
-├── data/                  # SQLite database (created at runtime)
-├── uploads/               # Uploaded files (created at runtime)
-└── docs/                  # Book documentation
+│       ├── upload.py      # Save and process uploads
+│       ├── extract.py     # Pull text from files
+│       ├── search.py      # Pinecone embed / search
+│       └── conversation.py# Chat orchestrator + answers
+├── templates/             # HTML page
+├── static/                # CSS and JavaScript
+├── docs/                  # Setup and guides
+├── data/                  # SQLite DB (runtime)
+└── uploads/               # Uploaded files (runtime)
 ```
 
-## Setup
-
-1. **Clone or download** the project
-
-2. **Create a virtual environment and install dependencies**
+## Quick start
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate        # Windows
+.venv\Scripts\activate
 pip install -r requirements.txt
+copy .env.example .env
 ```
 
-3. **Configure environment variables**
-
-```bash
-copy .env.example .env        # Windows
-```
-
-Edit `.env` and add your API keys. See [docs/setup.md](docs/setup.md) for details.
-
-4. **Run the app**
+Add your OpenAI and Pinecone keys to `.env`, then:
 
 ```bash
 python app.py
 ```
 
-5. **Open** [http://localhost:5000](http://localhost:5000)
+Open http://localhost:5000
 
-The Pinecone index is created automatically on the first document upload.
+More detail: [docs/setup.md](docs/setup.md)
 
-## Example usage
+## How chat works
 
-1. Upload a PDF manual or policy document
-2. Wait until the status shows **Ready**
-3. Type a question such as: *"What are the steps to process a refund?"*
-4. Read the answer and click **⋯** to view source documents
+1. **Orchestrator** decides: clarify, explain the app, or search manuals
+2. **Retrieval** runs only when needed, then answers from document text only
 
-## API endpoints
+See [docs/how-it-works.md](docs/how-it-works.md).
+
+## API
 
 | Method | Route | Purpose |
 |---|---|---|
 | GET | `/` | Web UI |
-| GET | `/api/documents` | List uploaded documents |
-| POST | `/api/upload` | Upload and process a file |
+| GET | `/api/documents` | List documents |
+| POST | `/api/upload` | Upload a file |
 | DELETE | `/api/documents/<id>` | Delete a document |
-| POST | `/api/chat` | Ask a question (`{"question": "..."}`) |
+| POST | `/api/chat` | Ask a question |
 
-## Documentation
+Chat body example:
+
+```json
+{
+  "question": "What should I check if the LumaMark LX-500 shows alarm E305?",
+  "messages": [],
+  "document_id": null,
+  "step_by_step": false
+}
+```
+
+## Docs
 
 | File | Contents |
 |---|---|
-| [docs/setup.md](docs/setup.md) | Installation and configuration |
-| [docs/architecture.md](docs/architecture.md) | System design and data flow |
-| [docs/how-it-works.md](docs/how-it-works.md) | Upload and chat pipeline |
-| [docs/customization.md](docs/customization.md) | Change prompts, models, and behavior |
-| [docs/tools-and-technologies.md](docs/tools-and-technologies.md) | Full stack reference |
+| [docs/setup.md](docs/setup.md) | Install and run |
+| [docs/how-it-works.md](docs/how-it-works.md) | Upload and chat flow |
+| [docs/customize.md](docs/customize.md) | Prompts, models, branding |
+| [docs/project-structure.md](docs/project-structure.md) | Folder map and connections |
 
 ## Environment variables
 
-| Variable | What it is used for | Where it is used |
-|---|---|---|
-| `OPENAI_API_KEY` | Embeddings, chat, and vision text extraction | `backend/config.py` |
-| `PINECONE_API_KEY` | Vector database access | `backend/config.py` |
-| `PINECONE_INDEX_NAME` | Name of the Pinecone index | `backend/config.py`, `vector_store.py` |
-| `FLASK_SECRET_KEY` | Flask session security | `app.py` |
+| Variable | Used for |
+|---|---|
+| `OPENAI_API_KEY` | Chat, embeddings, vision OCR |
+| `PINECONE_API_KEY` | Vector search |
+| `PINECONE_INDEX_NAME` | Pinecone index name (optional) |
+| `FLASK_SECRET_KEY` | Flask secret (change in production) |
 
-Do not commit real API keys. Use `.env.example` as a template only.
-
-## Supported file types
-
-PDF, DOCX, DOC, TXT, MD, PNG, JPG, JPEG, WEBP, GIF, BMP, TIFF
+Do not commit real keys. Use `.env.example` as a template.

@@ -5,10 +5,22 @@ const fileInput = document.getElementById("fileInput");
 const browseBtn = document.getElementById("browseBtn");
 const uploadStatus = document.getElementById("uploadStatus");
 const documentList = document.getElementById("documentList");
+const documentSelect = document.getElementById("documentSelect");
+const stepByStepToggle = document.getElementById("stepByStepToggle");
 const chatForm = document.getElementById("chatForm");
 const questionInput = document.getElementById("questionInput");
 const chatWindow = document.getElementById("chatWindow");
 const sendBtn = document.getElementById("sendBtn");
+const libraryToggle = document.getElementById("libraryToggle");
+const libraryCount = document.getElementById("libraryCount");
+const libraryPanel = document.querySelector(".library");
+
+/** Recent chat turns for this browser session only (not persisted). */
+const conversationHistory = [];
+const MAX_CLIENT_HISTORY = 12;
+
+/** Durable context from the last orchestrator turn (topic, goal, details, document). */
+let conversationState = null;
 
 function setStatus(message, type = "info") {
   uploadStatus.hidden = false;
@@ -21,11 +33,6 @@ function clearStatus() {
   uploadStatus.textContent = "";
 }
 
-function formatDate(value) {
-  if (!value) return "";
-  return new Date(value).toLocaleString();
-}
-
 function escapeHtml(text) {
   return String(text)
     .replaceAll("&", "&amp;")
@@ -35,7 +42,29 @@ function escapeHtml(text) {
     .replaceAll("'", "&#39;");
 }
 
+function renderDocumentSelect(documents) {
+  const previous = documentSelect.value;
+  const readyDocs = documents.filter((doc) => doc.status === "ready");
+
+  documentSelect.innerHTML = '<option value="">All documents</option>';
+  readyDocs.forEach((doc) => {
+    const option = document.createElement("option");
+    option.value = String(doc.id);
+    option.textContent = doc.filename;
+    documentSelect.appendChild(option);
+  });
+
+  if (previous && [...documentSelect.options].some((opt) => opt.value === previous)) {
+    documentSelect.value = previous;
+  } else {
+    documentSelect.value = "";
+  }
+}
+
 function renderDocuments(documents) {
+  renderDocumentSelect(documents);
+  libraryCount.textContent = String(documents.length);
+
   if (!documents.length) {
     documentList.innerHTML = '<li class="empty-state">No documents uploaded yet.</li>';
     return;
@@ -51,8 +80,6 @@ function renderDocuments(documents) {
               <span class="status-badge ${doc.status}">${doc.status}</span>
               · ${doc.file_type.toUpperCase()}
               · ${doc.page_count || 0} pages
-              · ${doc.chunk_count || 0} chunks
-              · ${formatDate(doc.uploaded_at)}
             </p>
             ${
               doc.error_message
@@ -83,6 +110,7 @@ async function uploadFile(file) {
     body: formData,
   });
   const data = await response.json();
+  await loadDocuments();
 
   if (!response.ok) {
     setStatus(data.error || "Upload failed.", "error");
@@ -90,16 +118,10 @@ async function uploadFile(file) {
   }
 
   setStatus(`${file.name} processed successfully.`, "success");
-  await loadDocuments();
   setTimeout(clearStatus, 2500);
 }
 
-function clearChatWelcome() {
-  chatWindow.querySelector(".chat-welcome")?.remove();
-}
-
 function appendMessage(role, content, sources = []) {
-  clearChatWelcome();
   const wrapper = document.createElement("div");
   wrapper.className = `message ${role}`;
 
@@ -134,8 +156,20 @@ function appendMessage(role, content, sources = []) {
     const list = document.createElement("ul");
     sources.forEach((source) => {
       const item = document.createElement("li");
+
+      const title = document.createElement("div");
+      title.className = "source-title";
       const page = source.page ? `, page ${source.page}` : "";
-      item.textContent = `${source.source}${page}`;
+      title.textContent = `${source.source}${page}`;
+      item.appendChild(title);
+
+      if (source.snippet) {
+        const snippet = document.createElement("div");
+        snippet.className = "source-snippet";
+        snippet.textContent = source.snippet;
+        item.appendChild(snippet);
+      }
+
       list.appendChild(item);
     });
     popover.appendChild(list);
@@ -172,6 +206,17 @@ function closeAllSourcePopovers() {
 }
 
 document.addEventListener("click", closeAllSourcePopovers);
+
+libraryToggle.addEventListener("click", () => {
+  const collapsed = libraryPanel.classList.toggle("collapsed");
+  libraryToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+});
+
+// On narrow screens, start with the library collapsed so chat has more room.
+if (window.matchMedia("(max-width: 1024px)").matches) {
+  libraryPanel.classList.add("collapsed");
+  libraryToggle.setAttribute("aria-expanded", "false");
+}
 
 browseBtn.addEventListener("click", () => fileInput.click());
 uploadZone.addEventListener("click", () => fileInput.click());
@@ -219,6 +264,19 @@ chatForm.addEventListener("submit", async (event) => {
   const question = questionInput.value.trim();
   if (!question) return;
 
+  const selectedDocumentId = documentSelect.value;
+  const payload = {
+    question,
+    step_by_step: stepByStepToggle.checked,
+    messages: conversationHistory.slice(-MAX_CLIENT_HISTORY),
+  };
+  if (selectedDocumentId) {
+    payload.document_id = Number(selectedDocumentId);
+  }
+  if (conversationState && typeof conversationState === "object") {
+    payload.conversation_state = conversationState;
+  }
+
   appendMessage("user", question);
   questionInput.value = "";
   sendBtn.disabled = true;
@@ -227,7 +285,7 @@ chatForm.addEventListener("submit", async (event) => {
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question }),
+      body: JSON.stringify(payload),
     });
     const data = await response.json();
 
@@ -236,12 +294,31 @@ chatForm.addEventListener("submit", async (event) => {
       return;
     }
 
-    appendMessage("assistant", data.answer, data.sources || []);
+    const answer = data.answer || "";
+    appendMessage("assistant", answer, data.sources || []);
+    conversationHistory.push({ role: "user", content: question });
+    conversationHistory.push({ role: "assistant", content: answer });
+    if (conversationHistory.length > MAX_CLIENT_HISTORY) {
+      conversationHistory.splice(0, conversationHistory.length - MAX_CLIENT_HISTORY);
+    }
+
+    const nextState = data.meta && data.meta.conversation_state;
+    if (nextState && typeof nextState === "object") {
+      conversationState = nextState;
+    }
   } catch (error) {
     appendMessage("assistant", "Could not reach the server.");
   } finally {
     sendBtn.disabled = false;
   }
+});
+
+// Enter sends the message; Shift+Enter adds a new line.
+questionInput.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey) return;
+  event.preventDefault();
+  if (sendBtn.disabled) return;
+  chatForm.requestSubmit();
 });
 
 // On phones, keep the input visible when the keyboard opens

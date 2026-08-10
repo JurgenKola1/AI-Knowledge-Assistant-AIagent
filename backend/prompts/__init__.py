@@ -1,0 +1,23 @@
+"""Prompt templates for the Knowledge Assistant."""
+
+from backend.prompts.chat import (
+    APP_HELP_SYSTEM_PROMPT,
+    APP_HELP_USER_PROMPT,
+    GROUNDED_SYSTEM_PROMPT,
+    GROUNDED_USER_PROMPT,
+    ORCHESTRATOR_SYSTEM_PROMPT,
+    ORCHESTRATOR_USER_PROMPT,
+    STEP_BY_STEP_ADDENDUM,
+)
+from backend.prompts.vision import VISION_PROMPT
+
+__all__ = [
+    "ORCHESTRATOR_SYSTEM_PROMPT",
+    "ORCHESTRATOR_USER_PROMPT",
+    "GROUNDED_SYSTEM_PROMPT",
+    "GROUNDED_USER_PROMPT",
+    "APP_HELP_SYSTEM_PROMPT",
+    "APP_HELP_USER_PROMPT",
+    "STEP_BY_STEP_ADDENDUM",
+    "VISION_PROMPT",
+]

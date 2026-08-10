@@ -10,8 +10,8 @@ from flask import Flask, jsonify, render_template, request
 
 from backend.config import FLASK_SECRET_KEY
 from backend.database import init_db, list_documents
-from backend.services.ingestion import allowed_file, process_document, remove_document, save_upload
-from backend.services.rag import answer_question
+from backend.services.conversation import answer_question
+from backend.services.upload import allowed_file, process_document, remove_document, save_upload
 
 app = Flask(__name__)
 app.secret_key = FLASK_SECRET_KEY
@@ -69,8 +69,33 @@ def api_chat():
     if not question:
         return jsonify({"error": "Question is required."}), 400
 
+    document_id = data.get("document_id")
+    if document_id is not None and document_id != "":
+        try:
+            document_id = int(document_id)
+        except (TypeError, ValueError):
+            return jsonify({"error": "document_id must be an integer."}), 400
+    else:
+        document_id = None
+
+    step_by_step = bool(data.get("step_by_step", False))
+
+    raw_messages = data.get("messages") or []
+    if raw_messages and not isinstance(raw_messages, list):
+        return jsonify({"error": "messages must be a list."}), 400
+
+    conversation_state = data.get("conversation_state")
+    if conversation_state is not None and not isinstance(conversation_state, dict):
+        return jsonify({"error": "conversation_state must be an object."}), 400
+
     try:
-        result = answer_question(question)
+        result = answer_question(
+            question,
+            document_id=document_id,
+            step_by_step=step_by_step,
+            messages=raw_messages,
+            conversation_state=conversation_state,
+        )
         return jsonify(result)
     except Exception as exc:
         traceback.print_exc()

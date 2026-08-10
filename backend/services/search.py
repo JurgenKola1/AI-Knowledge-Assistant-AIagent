@@ -1,4 +1,4 @@
-"""Pinecone vector store: embeddings, search, and document cleanup."""
+"""Pinecone search: embeddings, similarity search, and document cleanup."""
 
 from langchain_openai import OpenAIEmbeddings
 from langchain_pinecone import PineconeVectorStore
@@ -69,7 +69,14 @@ def delete_document_vectors(document_id: int) -> None:
     index.delete(filter={"document_id": {"$eq": document_id}})
 
 
-def search_relevant_chunks(query: str, top_k: int = TOP_K):
+def search_relevant_chunks(
+    query: str,
+    top_k: int = TOP_K,
+    document_id: int | None = None,
+):
     """Return the most similar document chunks for a user question."""
     vector_store = get_vector_store()
-    return vector_store.similarity_search_with_score(query, k=top_k)
+    search_kwargs: dict = {"k": top_k}
+    if document_id is not None:
+        search_kwargs["filter"] = {"document_id": {"$eq": document_id}}
+    return vector_store.similarity_search_with_score(query, **search_kwargs)
